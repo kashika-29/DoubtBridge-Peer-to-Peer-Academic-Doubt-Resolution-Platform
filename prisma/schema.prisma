@@ -1,0 +1,115 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  STUDENT
+  HELPER
+  MODERATOR
+  ADMIN
+}
+
+enum DoubtStatus {
+  OPEN
+  CLAIMED
+  RESOLVED
+  CLOSED
+}
+
+enum Urgency {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String?
+  role          Role      @default(STUDENT)
+  reputation    Int       @default(0)
+  avatar        String?
+  subjects      String?   // Comma-separated or JSON list of subjects
+  isAvailable   Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  askedDoubts      Doubt[]   @relation("StudentDoubts")
+  claimedDoubts    Doubt[]   @relation("HelperDoubts")
+  answers          Answer[]
+  articles         KnowledgeArticle[]
+  reportsSubmitted Report[]  @relation("ReporterUser")
+}
+
+model Doubt {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  subject     String
+  tags        String?     // Comma-separated tags
+  status      DoubtStatus @default(OPEN)
+  urgency     Urgency     @default(MEDIUM)
+  studentId   String
+  student     User        @relation("StudentDoubts", fields: [studentId], references: [id], onDelete: Cascade)
+  helperId    String?
+  helper      User?       @relation("HelperDoubts", fields: [helperId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  answers     Answer[]
+  reports     Report[]
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  content    String
+  isAccepted Boolean  @default(false)
+  upvotes    Int      @default(0)
+  doubtId    String
+  doubt      Doubt    @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reports    Report[]
+}
+
+model KnowledgeArticle {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  subject   String
+  tags      String?
+  views     Int      @default(0)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reason     String
+  status     ReportStatus @default(PENDING)
+  reporterId String
+  reporter   User         @relation("ReporterUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  doubtId    String?
+  doubt      Doubt?       @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  answerId   String?
+  answer     Answer?      @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
