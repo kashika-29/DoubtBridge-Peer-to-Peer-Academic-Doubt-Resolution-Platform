@@ -1,121 +1,59 @@
-'use client';
+﻿'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import Sidebar from '@/components/layout/Sidebar';
+import Navbar from '@/components/layout/Navbar';
 
 export default function DashboardLayout({ children }) {
-  const pathname = usePathname();
-
-  const navItems = [
-    { label: 'Overview', href: '/dashboard' },
-    { label: 'Academic Doubts', href: '/doubts' },
-    { label: 'Ask a Doubt', href: '/doubts/new' },
-    { label: 'Peer Helpers', href: '/helpers' },
-    { label: 'Knowledge Base', href: '/knowledge' },
-    { label: 'Moderation', href: '/moderation' },
-  ];
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Sidebar */}
-      <aside
+    <div
+      style={{
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        background: 'var(--bg-primary)',
+      }}
+    >
+      {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        /* Pass userRole here when auth is integrated, e.g. userRole="moderator" */
+      />
+
+      {/* ── Main content area ────────────────────────────────────────── */}
+      <div
         style={{
-          width: '260px',
-          borderRight: '1px solid var(--border-color)',
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '1.5rem 1rem',
-          background: 'var(--bg-secondary)',
+          overflow: 'hidden',
+          minWidth: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem', padding: '0 0.5rem' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-cyan))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-            }}
-          >
-            DB
-          </div>
-          <span style={{ fontSize: '1.15rem', fontWeight: 700 }}>DoubtBridge</span>
-        </div>
+        <Navbar onMenuClick={() => setSidebarOpen(true)} />
 
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.9rem',
-                  fontWeight: 500,
-                  color: isActive ? '#ffffff' : 'var(--text-muted)',
-                  background: isActive ? 'var(--accent-primary)' : 'transparent',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User Card */}
-        <div
+        <main
+          id="main-content"
+          tabIndex={-1}
           style={{
-            borderTop: '1px solid var(--border-color)',
-            paddingTop: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            flex: 1,
+            overflowY: 'auto',
+            padding: '2rem',
           }}
         >
-          <div>
-            <p style={{ fontSize: '0.875rem', fontWeight: 600 }}>Alex Rivera</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)' }}>150 Karma • Student</p>
-          </div>
-          <Link href="/" style={{ fontSize: '0.8rem', color: 'var(--accent-rose)' }}>
-            Exit
-          </Link>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header
-          style={{
-            height: '64px',
-            borderBottom: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 2rem',
-            background: 'rgba(17, 24, 39, 0.5)',
-            backdropFilter: 'blur(8px)',
-          }}
-        >
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-            Peer Academic Resolution Portal
-          </span>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <span className="badge badge-open">🟢 Live Network</span>
-          </div>
-        </header>
-
-        <main style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
           {children}
         </main>
       </div>
+
+      {/* Desktop sidebar spacer — reserves 252px on the left */}
+      <style>{`
+        @media (min-width: 768px) {
+          /* Sidebar is sticky/in-flow on desktop; no spacer needed with flex */
+        }
+      `}</style>
     </div>
   );
 }
