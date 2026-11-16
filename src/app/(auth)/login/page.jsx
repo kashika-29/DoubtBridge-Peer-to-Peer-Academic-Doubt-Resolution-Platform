@@ -43,8 +43,7 @@ function LoginForm() {
 
         // Safe redirect — only allow relative URLs
         const target = callbackUrl.startsWith('/') ? callbackUrl : '/dashboard';
-        router.push(target);
-        router.refresh();
+        window.location.href = target;
       } catch {
         setError('A network error occurred. Please check your connection.');
       }

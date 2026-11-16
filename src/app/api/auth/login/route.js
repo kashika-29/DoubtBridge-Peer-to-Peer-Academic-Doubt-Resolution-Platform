@@ -81,6 +81,8 @@ export async function POST(request) {
     // ── Create session ─────────────────────────────────────────────────────────
     const session = await getSession();
     session.userId = user.id;
+    session.role = user.role;
+    session.isActive = user.isActive;
     await session.save();
 
     // Strip passwordHash before returning

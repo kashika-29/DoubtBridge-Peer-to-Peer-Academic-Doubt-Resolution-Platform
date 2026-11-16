@@ -1,41 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
+import { sessionOptions } from '@/lib/sessionConfig';
 
 /**
  * Next.js Route Middleware — Authentication Guard
  * ─────────────────────────────────────────────────
- * Protects dashboard pages and API routes.
+ * Protects dashboard pages, admin views, and authenticated API routes.
  * Uses iron-session to verify the signed session cookie server-side.
  */
-
-function getSessionPassword() {
-  const secret = process.env.SESSION_SECRET;
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
-    if (!secret || secret.length < 32 || secret.includes('changeme') || secret.includes('replace_this')) {
-      throw new Error(
-        'CRITICAL CONFIGURATION ERROR: SESSION_SECRET is unset or insecure in production middleware.'
-      );
-    }
-    return secret;
-  }
-
-  return secret || 'development_fallback_secret_must_be_at_least_32_chars_long!';
-}
-
-const SESSION_OPTIONS = {
-  cookieName: 'doubtbridge_session',
-  get password() {
-    return getSessionPassword();
-  },
-  cookieOptions: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7,
-  },
-};
 
 // Routes that do NOT require authentication
 const PUBLIC_PATHS = ['/', '/login', '/register'];
@@ -72,16 +44,20 @@ export async function middleware(request) {
   }
 
   try {
-    // iron-session in middleware: pass the request cookies object
     const res = NextResponse.next();
-    const session = await getIronSession(request.cookies, SESSION_OPTIONS);
+    const session = await getIronSession(request.cookies, sessionOptions);
     const userId = session?.userId;
+    const isActive = session?.isActive;
 
-    if (!userId) {
+    // Check both authentication and active status
+    if (!userId || isActive === false) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
-          { success: false, error: 'Authentication required.' },
-          { status: 401 }
+          {
+            success: false,
+            error: isActive === false ? 'Account suspended.' : 'Authentication required.',
+          },
+          { status: isActive === false ? 403 : 401 }
         );
       }
       return loginRedirect(request, pathname);

@@ -101,6 +101,8 @@ export async function POST(request) {
     // ── Create session ─────────────────────────────────────────────────────────
     const session = await getSession();
     session.userId = user.id;
+    session.role = user.role;
+    session.isActive = true;
     await session.save();
 
     return NextResponse.json({ success: true, user }, { status: 201 });

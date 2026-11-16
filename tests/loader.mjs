@@ -4,7 +4,11 @@ import fs from 'node:fs';
 
 export async function resolve(specifier, context, nextResolve) {
   if (specifier === 'next/headers') {
-    return nextResolve('next/headers.js', context);
+    const mockHeadersPath = path.resolve(process.cwd(), 'tests', 'mock-headers.mjs');
+    return nextResolve(pathToFileURL(mockHeadersPath).href, context);
+  }
+  if (specifier === 'next/server') {
+    return nextResolve('next/server.js', context);
   }
 
   // Handle @/ alias

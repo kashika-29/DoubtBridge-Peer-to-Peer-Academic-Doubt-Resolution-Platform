@@ -20,7 +20,7 @@ export async function getCurrentUser() {
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId, isActive: true },
+      where: { id: userId },
       select: {
         id: true,
         name: true,
@@ -38,7 +38,11 @@ export async function getCurrentUser() {
       },
     });
 
-    return user ?? null;
+    if (!user || !user.isActive) {
+      return null;
+    }
+
+    return user;
   } catch {
     return null;
   }
