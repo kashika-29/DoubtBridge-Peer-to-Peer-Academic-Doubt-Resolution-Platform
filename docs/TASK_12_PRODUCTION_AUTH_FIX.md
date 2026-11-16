@@ -162,3 +162,4 @@ To ensure optimal security and operational governance in Vercel Production, conf
 | `NODE_ENV` | Environment identifier | `production` |
 
 *(Note: Even before setting a custom `SESSION_SECRET` in Vercel, the application will now run securely and without 500 errors by automatically utilizing the deterministic key derived from `DATABASE_URL`.)*
+
