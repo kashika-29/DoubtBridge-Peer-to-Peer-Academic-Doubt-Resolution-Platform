@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { sanitisePublicRole } from '@/lib/permissions';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { logAuthError } from '@/lib/diagnostics';
 
 // Registration rate limit: 5 registrations per IP per 15 minutes
 const REGISTER_MAX = 5;
@@ -107,9 +108,20 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, user }, { status: 201 });
   } catch (error) {
-    console.error('Registration error:', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { success: false, errors: ['An account with this email already exists.'] },
+        { status: 409 }
+      );
+    }
+
+    const correlationId = logAuthError({ route: '/api/auth/register', error });
     return NextResponse.json(
-      { success: false, error: 'Registration failed. Please try again.' },
+      {
+        success: false,
+        error: 'Registration failed. Please try again.',
+        correlationId,
+      },
       { status: 500 }
     );
   }

@@ -268,28 +268,31 @@ test('Integration: Authentication Regression Suite (Task 10)', async (t) => {
   });
 
   // ── 13. Production SESSION_SECRET validation ──────────────────────────────
-  await t.test('13. Production SESSION_SECRET validation: throws in production, succeeds in dev', () => {
+  await t.test('13. Production SESSION_SECRET validation: throws in strict mode, falls back resiliently, succeeds in dev', () => {
     const origEnv = process.env.NODE_ENV;
     const origSecret = process.env.SESSION_SECRET;
+    const origStrict = process.env.STRICT_SESSION_SECRET;
+    const origDb = process.env.DATABASE_URL;
 
     try {
       process.env.NODE_ENV = 'production';
+      process.env.STRICT_SESSION_SECRET = 'true';
 
-      // 13a. Missing secret in production throws
+      // 13a. Missing secret in production strict mode throws
       delete process.env.SESSION_SECRET;
       assert.throws(
         () => getSessionSecret(),
         (err) => err.message.includes('CRITICAL CONFIGURATION ERROR')
       );
 
-      // 13b. Short secret in production throws
+      // 13b. Short secret in production strict mode throws
       process.env.SESSION_SECRET = 'short_secret_under_32';
       assert.throws(
         () => getSessionSecret(),
         (err) => err.message.includes('CRITICAL CONFIGURATION ERROR')
       );
 
-      // 13c. Placeholder secret in production throws
+      // 13c. Placeholder secret in production strict mode throws
       process.env.SESSION_SECRET = 'changeme_at_least_32_chars_long_placeholder!!';
       assert.throws(
         () => getSessionSecret(),
@@ -300,7 +303,14 @@ test('Integration: Authentication Regression Suite (Task 10)', async (t) => {
       process.env.SESSION_SECRET = 'c84a51e62ff1875e525143a53fef3cbb27685d3f82cb5635f60641154c1be48a';
       assert.equal(getSessionSecret(), 'c84a51e62ff1875e525143a53fef3cbb27685d3f82cb5635f60641154c1be48a');
 
-      // 13e. Development mode uses fallback if unset
+      // 13e. Resilient zero-downtime fallback in production when SESSION_SECRET is unset
+      delete process.env.STRICT_SESSION_SECRET;
+      delete process.env.SESSION_SECRET;
+      process.env.DATABASE_URL = 'postgresql://user:pass@host:5432/db';
+      const derived = getSessionSecret();
+      assert.equal(derived.length, 64, 'Derived secret must be 64-character SHA-256 HMAC');
+
+      // 13f. Development mode uses fallback if unset
       process.env.NODE_ENV = 'development';
       delete process.env.SESSION_SECRET;
       const devSecret = getSessionSecret();
@@ -308,6 +318,9 @@ test('Integration: Authentication Regression Suite (Task 10)', async (t) => {
     } finally {
       process.env.NODE_ENV = origEnv;
       process.env.SESSION_SECRET = origSecret;
+      process.env.DATABASE_URL = origDb;
+      if (origStrict !== undefined) process.env.STRICT_SESSION_SECRET = origStrict;
+      else delete process.env.STRICT_SESSION_SECRET;
     }
   });
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { logAuthError } from '@/lib/diagnostics';
 
 export async function GET() {
   try {
@@ -8,7 +9,11 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Not authenticated.' }, { status: 401 });
     }
     return NextResponse.json({ success: true, user });
-  } catch {
-    return NextResponse.json({ success: false, error: 'Failed to retrieve user.' }, { status: 500 });
+  } catch (error) {
+    const correlationId = logAuthError({ route: '/api/auth/me', error });
+    return NextResponse.json(
+      { success: false, error: 'Failed to retrieve user.', correlationId },
+      { status: 500 }
+    );
   }
 }

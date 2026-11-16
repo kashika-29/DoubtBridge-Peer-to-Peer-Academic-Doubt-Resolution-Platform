@@ -20,11 +20,13 @@ test('Session: Secret validation and environment enforcement', async (t) => {
     process.env.SESSION_SECRET = origSecret;
   });
 
-  await t.test('strictly refuses to start with missing or insecure secret in production', () => {
+  await t.test('strictly refuses to start with missing or insecure secret in production strict mode', () => {
     const origEnv = process.env.NODE_ENV;
     const origSecret = process.env.SESSION_SECRET;
+    const origStrict = process.env.STRICT_SESSION_SECRET;
 
     process.env.NODE_ENV = 'production';
+    process.env.STRICT_SESSION_SECRET = 'true';
 
     // Test missing secret
     delete process.env.SESSION_SECRET;
@@ -53,6 +55,28 @@ test('Session: Secret validation and environment enforcement', async (t) => {
 
     process.env.NODE_ENV = origEnv;
     process.env.SESSION_SECRET = origSecret;
+    if (origStrict !== undefined) process.env.STRICT_SESSION_SECRET = origStrict;
+    else delete process.env.STRICT_SESSION_SECRET;
+  });
+
+  await t.test('resiliently provides secure derived key in production when SESSION_SECRET is unset', () => {
+    const origEnv = process.env.NODE_ENV;
+    const origSecret = process.env.SESSION_SECRET;
+    const origStrict = process.env.STRICT_SESSION_SECRET;
+    const origDb = process.env.DATABASE_URL;
+
+    process.env.NODE_ENV = 'production';
+    delete process.env.STRICT_SESSION_SECRET;
+    delete process.env.SESSION_SECRET;
+    process.env.DATABASE_URL = 'postgresql://user:pass@host:5432/db';
+
+    const secret = getSessionSecret();
+    assert.equal(secret.length, 64, 'Derived secret must be 64-char hex HMAC');
+
+    process.env.NODE_ENV = origEnv;
+    process.env.SESSION_SECRET = origSecret;
+    process.env.DATABASE_URL = origDb;
+    if (origStrict !== undefined) process.env.STRICT_SESSION_SECRET = origStrict;
+    else delete process.env.STRICT_SESSION_SECRET;
   });
 });
-

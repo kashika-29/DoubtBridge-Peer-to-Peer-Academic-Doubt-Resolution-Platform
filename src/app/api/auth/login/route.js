@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/session';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { logAuthError } from '@/lib/diagnostics';
 
 // Login rate limit: 10 attempts per IP per 15 minutes (brute-force protection)
 const LOGIN_MAX = 10;
@@ -90,9 +91,13 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, user: safeUser });
   } catch (error) {
-    console.error('Login error:', error);
+    const correlationId = logAuthError({ route: '/api/auth/login', error });
     return NextResponse.json(
-      { success: false, error: 'Login failed. Please try again.' },
+      {
+        success: false,
+        error: 'Login failed. Please try again.',
+        correlationId,
+      },
       { status: 500 }
     );
   }
